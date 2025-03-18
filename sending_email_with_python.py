@@ -13,7 +13,7 @@ smtp = smtplib.SMTP('smtp.gmail.com', 587)
 # Start TLS for security
 smtp.starttls()
 # Authentication
-smtp.login("convcsc2025project@gmail.com", "dxlr bhoc lmrv libr")
+smtp.login("convcsc2025project@gmail.com", "omyu xsxt ryrh uxbp")
 # Message to be sent
 message = "test"
 # Sending the mail
