@@ -11,14 +11,14 @@ smtp.starttls()
 fromaddr = "convcsc2025project@gmail.com"
 
 # Email you are sending to
-toaddr = "linklamoreaux2002@gmail.com"
+toaddr = "someemailyouwanttosendto@gmail.com"
 
 # Authentication
 smtp.login(fromaddr, "omyu xsxt ryrh uxbp")
 
 # CC and BCC email
-cc = ["dinosaurchainsaw2002@gmail.com"]
-bcc = ["ljlamoreaux001@converse.edu"]
+cc = ["someemailyouwanttocc@gmail.com"]
+bcc = ["someemailyouwanttobcc@gmail.com"]
 
 # Message to be sent
 message = MIMEMultipart()
