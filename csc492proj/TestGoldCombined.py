@@ -3,12 +3,13 @@ import smtplib
 from email.message import EmailMessage
 import os
 import glob
+import shutil
 
 os.chdir("C:\\Users\\KACronin001\\Documents\\Gold Project") #Make this the directory of where the code is
 #print("Current Working Directory:", os.getcwd()) #Uncomment to check where it's looking
 
-folder = "EmailSentCSV" #Name this whatever the name of the folder is
-os.makedirs(folder,exist_ok=True)
+csvFolder = "EmailSentCSV" #Name this whatever the name of the folder is
+os.makedirs(csvFolder,exist_ok=True)
 
 excel_files = glob.glob('*.xlsx') + glob.glob('*.xls')
 
@@ -54,8 +55,16 @@ else:
                 dfTest_csv.at[i, 'Email Sent'] = 'Sent'
                 print(f"Mail Sent To {email}")
 
-        csv_path = os.path.join(folder, base_name + '.csv')
+        csv_path = os.path.join(csvFolder, base_name + '.csv')
         dfTest_csv.to_csv(csv_path, index=False)
         print(f"Saved CSV to: {csv_path}")
+
+        #Name this whatever the name of the folder is and put the path to the folder of origin
+        excelFolder = os.path.join("C:\\Users\\KACronin001\\Documents\\Gold Project", "EmailSentXLSX")
+        os.makedirs(excelFolder, exist_ok=True)
+
+        #Move the excel file from the main folder to the EmailSentXLSX folder
+        shutil.move(excel_file, os.path.join(excelFolder, os.path.basename(excel_file)))
+        print(f"Moved {excel_file} to {excelFolder}") 
 
     smtp.quit()
