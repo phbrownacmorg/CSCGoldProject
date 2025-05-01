@@ -128,7 +128,7 @@ else:
 
                 # Sending the email
                 all_recipients = [str(email)] + [str(addr) for addr in cc] + [str(addr) for addr in bcc]
-                smtp.sendmail(fromaddr, all_recipients, message.as_string())
+                #smtp.sendmail(fromaddr, all_recipients, message.as_string()) #Uncomment to send emails
 
                 dfTest_csv.at[i, 'Email Sent'] = 'Sent'
                 dfTest_csv.at[i, 'Sent Timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
