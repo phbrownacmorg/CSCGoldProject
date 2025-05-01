@@ -6,6 +6,8 @@ import glob
 import shutil
 from datetime import datetime
 from typing import cast
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 os.chdir("C:\\Users\\KACronin001\\Documents\\Gold Project") #Make this the directory of where the code is
 #print("Current Working Directory:", os.getcwd()) #Uncomment to check where it's looking
@@ -29,7 +31,15 @@ else:
 
     smtp = smtplib.SMTP('smtp.gmail.com', 587)
     smtp.starttls()
-    smtp.login("convcsc2025project@gmail.com", "omyu xsxt ryrh uxbp")
+
+    # Email you are sending from
+    fromaddr = "convcsc2025project@gmail.com"
+
+    smtp.login(fromaddr, "omyu xsxt ryrh uxbp")
+
+    # CC and BCC email
+    cc = ["someemailyouwanttocc@gmail.com"]
+    bcc = ["someemailyouwanttobcc@gmail.com"]
 
     for excel_file in excel_files:
         print(f"Processing: {excel_file}")
@@ -77,19 +87,49 @@ else:
         #print(dfTest.columns.tolist()) #Uncomment to see the names of the columns
         dfTest_csv = dfTest.copy()
         dfTest_csv['Email Sent'] = ''
-        
+        dfTest_csv['Sent Timestamp'] = ''
+
         for i in range(len(dfTest)):
             ID = dfTest.loc[i, 'Jenzabar ID']
             FN = dfTest.loc[i, 'FIRST NAME']
             LN = dfTest.loc[i, 'LAST NAME']
             email = dfTest.loc[i, 'email address']
+
             if pd.notnull(email):
-                message = EmailMessage()
-                message['From'] = "convcsc2025project@gmail.com"
-                message['To'] = email
-                message['Subject'] = "Test Email"
-                message.set_content("Hi, this is a test email.")
-                #smtp.send_message(message) #Uncomment to actually send the emails.
+                message = MIMEMultipart()
+                message["From"] = fromaddr
+                message["To"] = str(email)
+                message["Subject"] = "Information for your Converse University course"
+                message["Cc"] = ", ".join(cc)  # Add CC header
+
+                # Message to be sent
+                body = f"""\
+                Welcome to {courseName}, {courseCode}. Your professor will be Dr. {prof_last_name} ({email}).
+
+                Your course is being taught through Converse's Canvas. The simplest way to get in to Converse's Canvas is to go to https://converse.instructure.com and log in there with your Converse email and password.
+
+                If you've taken a course with Converse before, your Converse email address and password will normally be unchanged from what they were. If you have a new Converse account, you should have gotten your Converse email address and password in a separate email from Campus Technology.
+
+                Once logged in, you should be taken to your Canvas dashboard. On that dashboard, you should see a tile with the name of your course.
+
+                If you don't see the tile before the course starts, that is not (yet) a problem. Our Canvas courses are created unpublished, which means they're hidden from students.
+
+                Please remember that you can always email me (peter.brown@converse.edu) for Canvas questions. Dr. {prof_last_name} is a better source for all other questions.
+
+                Peace,
+                —Peter Brown
+
+                Peter H. Brown, Ph.D.
+                Asst. Professor of Computer Science
+                Director of Distance Education
+                Converse University
+                """
+                message.attach(MIMEText(body, "plain"))
+
+                # Sending the email
+                all_recipients = [str(email)] + [str(addr) for addr in cc] + [str(addr) for addr in bcc]
+                smtp.sendmail(fromaddr, all_recipients, message.as_string())
+
                 dfTest_csv.at[i, 'Email Sent'] = 'Sent'
                 dfTest_csv.at[i, 'Sent Timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 print(f"Mail Sent To {email}")
