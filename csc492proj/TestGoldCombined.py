@@ -13,6 +13,8 @@ os.chdir("C:\\Users\\KACronin001\\Documents\\Gold Project") #Make this the direc
 # Define file path
 processed_folder = "C:\\Users\\KACronin001\\Documents\\Gold Project\\EmailSentXLSX"     # Make sure this folder exists
 
+courseNames_df = pd.read_csv("coursenames.csv")
+
 csvFolder = "EmailSentCSV" #Name this whatever the name of the folder is
 os.makedirs(csvFolder,exist_ok=True)
 
@@ -57,9 +59,20 @@ else:
 
         courseCode = temp.iloc[0,0]
         courseCode = str(courseCode) 
-        courseCode = courseCode.replace(" ","") #This removes spaces
-        courseCode = courseCode[:6] #This basically removes the other stuff we dont need since we only need the 3 letters and 3 numbers for the course code (No Y1 and stuff like that)
-        #print(courseCode) #Uncomment to see the name of the courseCode
+        courseCode = courseCode[:7] #This basically removes the other stuff we dont need since we only need the 3 letters and 3 numbers for the course code (No Y1 and stuff like that)
+
+        courseNames_df.iloc[:, 0] = courseNames_df.iloc[:, 0].astype(str) #This is to help avoid errors (hopefully)
+        course_row = courseNames_df[courseNames_df.iloc[:, 0].str.strip() == courseCode] #str.strip is here to help with data validation (so random spaces don't interfere with the checking (hopefully))
+
+        if not course_row.empty:
+            courseName = course_row.iloc[0, 1]
+            print(f"Course Name Found: {courseName}")
+        else:
+            courseName = "Unknown Course Name"
+            print(f"Course name not found for code: {courseCode}")
+
+        #print(courseCode) #Uncomment to see the courseCode
+        
         dfTest = pd.read_excel(excel_file, 0, header=header_row)
         #print(dfTest.columns.tolist()) #Uncomment to see the names of the columns
         dfTest_csv = dfTest.copy()
