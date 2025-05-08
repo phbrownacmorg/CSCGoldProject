@@ -116,7 +116,9 @@ def excelStuff(input_folder, processed_folder, csvFolder, smtp, fromaddr, course
                 prof_last_name = 'Unknown'
 
             print(f"Professor Last Name Detected: {prof_last_name}")
-            instructor_row = instructors_df[instructors_df['lastname'] == prof_last_name]
+            instructor_row = instructors_df[instructors_df['lastname'] == prof_last_name] 
+            #https://www.geeksforgeeks.org/ways-to-filter-pandas-dataframe-by-column-values/
+            
             if not instructor_row.empty:
                 prof_email = instructor_row.iloc[0]['email']
                 print(f"Professor Email Found: {prof_email}")
@@ -183,7 +185,6 @@ def main():
     courseNames_df, instructors_df = csvData(working_dir)
     input_folder, processed_folder, csvFolder = folders(working_dir)
     smtp, fromaddr = smtpSetup()
-    cc = ["someemailyouwanttocc@gmail.com"] 
 
     excelStuff(input_folder, processed_folder, csvFolder,smtp, fromaddr, courseNames_df, instructors_df)
 
