@@ -37,42 +37,6 @@ def make_coursename_frame() -> pd.DataFrame:
     frame = frame.set_index('filename')
     return frame
 
-# def get_coursename(display_number: str) -> str:
-#     result = ''
-#     with open(csv_folder.joinpath('coursenames.csv')) as f:
-#         reader = DictReader(f)
-#         for row in reader:
-#             if display_number == row['course']:
-#                 result = row['coursename']
-#                 break
-#     # Post: the course was found
-#     assert result != '', f"Course {display_number} not found in coursenames.csv"
-#     return result
-
-# def get_instructor(instructor_code: str, instructor_frame: pd.DataFrame) -> pd.DataFrame:
-#     # result: dict[str, str] = {}
-#     # instructor_frame = pd.read_csv(instructors_file)
-#     instructor_frame = instructor_frame.set_index('filename')
-#     print(instructor_frame)
-#     print()
-#     # print(instructor_frame.axes)
-#     result = instructor_frame.loc[instructor_code]
-#     print(result)
-#     print()
-#     return result
-
-
-
-    # with open(csv_folder.joinpath('instructors.csv')) as f:
-    #     reader = DictReader(f)
-    #     for row in reader:
-    #         if instructor_code == row['filename']:
-    #             result = row
-    #             break
-    # # Post: the instructor was found
-    # assert result != {}, f"Instructor '{instructor_code}' not found in instructors.csv"
-    # return result
-
 def init_course_dict(infile: Path, i_df: pd.DataFrame, cnm_df: pd.DataFrame) -> dict[str, str | pd.DataFrame]:
     """Initialize and return a dictionary with those properties of the course
         that can be inferred from the INFILE."""
@@ -92,18 +56,8 @@ def init_course_dict(infile: Path, i_df: pd.DataFrame, cnm_df: pd.DataFrame) -> 
     d['term'] = infile_parts[2]
     d['full_num'] = d['prefix'] + d['barenum'] + '.' + d['section'] + '-' + d['term']
     d['students_csv'] = str(csv_folder.joinpath(d['full_num'] + '.csv'))
-
     d['instructor'] = cast(pd.DataFrame, i_df.loc[infile_parts[3]])
-
-
     return d
-
-# def corresponding_csv(infile: Path) -> Path:
-#     """Takes a path INFILE and returns the filename of the corresponding CSV
-#         file in csv_folder, whether or not that file exists."""
-#     # Really should parse INFILE
-#     csv_path = csv_folder.joinpath(infile.name).with_suffix('.csv')
-#     return csv_path
 
 def read_input(infile: Path, csvfile: str) -> pd.DataFrame:
     """Takes a path INFILE and reads it into a pandas DataFrame.  If a 
