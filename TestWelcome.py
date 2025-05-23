@@ -1,4 +1,3 @@
-from pathlib import Path
 import os
 import pandas as pd
 import unittest
@@ -104,6 +103,10 @@ class TestWelcome(unittest.TestCase):
         print(frame, '\n')
         print(frame.loc[1037970])
 
+    def testWriteCSV_CSC000(self) -> None:
+        d = init_course_dict(self._CSC000xlsx_path, self._inst_f, self._crs_f)
+        d['students'] = read_input(d['infile'], d['students_csv'])
+        write_students_csv(d)
 
 
 if __name__ == '__main__':

@@ -177,5 +177,6 @@ cython_debug/
 students_processed/
 
 # Processed CSV files
+students_csv/CSC*
 students_csv/EDU*
 students_csv/PLP*
