@@ -169,3 +169,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# VS Code stuff
+.vscode/
+
+# Processed XLSX files
+students_processed/
+
+# Processed CSV files
+students_csv/EDU*
+students_csv/PLP*
