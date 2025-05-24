@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import unittest
+from typing import cast
 from welcome_students import *
 # import the code you want to test here
 
@@ -17,9 +18,13 @@ class TestWelcome(unittest.TestCase):
         self._PLP701stem = 'PLP701.Y1_2025-05-19_2425-BS_Knipe,J.'
         self._PLP701fullname = self._PLP701stem[:9] + '-' + self._PLP701stem[21:28]
         self._PLP701xlsx_path = input_folder.joinpath(self._PLP701stem + '.xlsx')
+        self._PLP721stem = 'PLP721.Y1_2025-05-27_2425-BS_Thomas,E.'
 
         self._inst_f = make_frame(instructors_file, 'filename')
         self._crs_f = make_frame(coursenames_file, 'course')
+
+        self._CSC000_d = init_course_dict(self._CSC000xlsx_path, self._inst_f, self._crs_f)
+        self._CSC000_d['students'] = read_input(self._CSC000xlsx_path, cast(str, self._CSC000_d['students_csv']))
 
     # Every method that starts with the string "test"
     # will be executed as a unit test
@@ -49,7 +54,11 @@ class TestWelcome(unittest.TestCase):
     # Only works at home in May 2025.  Skip otherwise!
     def testListFiles(self) -> None:
         self.assertEqual(list_input_files(),
-                         [self._CSC000xlsx_path, self._PLP700xlsx_path, self._PLP701xlsx_path])
+                         [self._CSC000xlsx_path, input_folder.joinpath('EDU591.Y2_anonymized_2425-AS_Bradley,C..xlsx'),
+                          input_folder.joinpath('EDU592.Y3_anonymized_2425-AS_Bradley,C..xlsx'),
+                          self._PLP700xlsx_path, self._PLP701xlsx_path,
+                          input_folder.joinpath(self._PLP721stem + '.xlsx')])
+                          
 
     def testInitCourseDictCSC000(self) -> None:
         d = init_course_dict(self._CSC000xlsx_path, self._inst_f, self._crs_f)
@@ -104,9 +113,11 @@ class TestWelcome(unittest.TestCase):
         print(frame.loc[1037970])
 
     def testWriteCSV_CSC000(self) -> None:
-        d = init_course_dict(self._CSC000xlsx_path, self._inst_f, self._crs_f)
-        d['students'] = read_input(d['infile'], d['students_csv'])
-        write_students_csv(d)
+        write_students_csv(self._CSC000_d)
+
+    def testPrintStudents(self) -> None:
+        send_emails(self._CSC000_d)
+
 
 
 if __name__ == '__main__':
