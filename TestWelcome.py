@@ -71,9 +71,9 @@ class TestWelcome(unittest.TestCase):
         self.assertEqual(d['term'], '2425-BS')
         self.assertEqual(d['full_num'], self._CSC000fullname)
         self.assertEqual(d['students_csv'], os.path.join(str(csv_folder), self._CSC000fullname + '.csv'))
-        self.assertEqual(d['instructor'].firstname, 'Peter')
-        self.assertEqual(d['instructor'].lastname, 'Brown')
-        self.assertEqual(d['instructor'].email, 'Peter.Brown@converse.edu')
+        self.assertEqual(cast(str, cast (pd.DataFrame, d['instructor'])['firstname']), 'Peter')
+        self.assertEqual(cast(str, cast (pd.DataFrame, d['instructor'])['lastname']), 'Brown')
+        self.assertEqual(cast(str, cast (pd.DataFrame, d['instructor'])['email']), 'Peter.Brown@converse.edu')
 
     # @unittest.skip('')
     def testInitCourseDictPLP700(self) -> None:

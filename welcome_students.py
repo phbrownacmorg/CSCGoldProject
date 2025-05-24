@@ -142,8 +142,10 @@ def write_students_csv(course_dict: dict[str, str | pd.DataFrame]) -> None:
 
 def move_to_processed(course_dict: dict[str, str | pd.DataFrame]) -> None:
     """Takes a Path INFILE and moves it to processed_folder."""
-    infile = Path(cast(str, course_dict['infile']))                    
-    infile.replace(processed_folder.joinpath(infile.name))
+    # Exempt CSC 000 from copying
+    if cast(str, course_dict['display_num']) != 'CSC 000':
+        infile = Path(cast(str, course_dict['infile']))                    
+        infile.replace(processed_folder.joinpath(infile.name))
     
 def main(args: list[str]) -> int:
     verify_constants()
@@ -169,3 +171,5 @@ if __name__ == '__main__':
 # 4. Capitalize names
 # 5. Correctly handle the two EDU courses
 # 6. Actually send mail?
+# 7. Break dependency between processed folder and code folder
+# 7. Clean repo, move code to Dropbox
