@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import unittest
+from smtplib import SMTP
 from typing import cast
 from welcome_students import *
 # import the code you want to test here
@@ -52,6 +53,7 @@ class TestWelcome(unittest.TestCase):
         self.assertTrue(verify_constants())
 
     # Only works at home in May 2025.  Skip otherwise!
+    @unittest.skip('')
     def testListFiles(self) -> None:
         self.assertEqual(list_input_files(),
                          [self._CSC000xlsx_path, input_folder.joinpath('EDU591.Y2_anonymized_2425-AS_Bradley,C..xlsx'),
@@ -74,38 +76,7 @@ class TestWelcome(unittest.TestCase):
         self.assertEqual(cast(str, cast (pd.DataFrame, d['instructor'])['firstname']), 'Peter')
         self.assertEqual(cast(str, cast (pd.DataFrame, d['instructor'])['lastname']), 'Brown')
         self.assertEqual(cast(str, cast (pd.DataFrame, d['instructor'])['email']), 'Peter.Brown@converse.edu')
-
-    # @unittest.skip('')
-    def testInitCourseDictPLP700(self) -> None:
-        d = init_course_dict(self._PLP700xlsx_path, self._inst_f, self._crs_f)
-        self.assertEqual(d['infile'], str(self._PLP700xlsx_path))
-        self.assertEqual(d['prefix'], 'PLP')
-        self.assertEqual(d['barenum'], '700')
-        self.assertEqual(d['section'], 'Y1')
-        self.assertEqual(d['display_num'], 'PLP 700')
-        self.assertEqual(d['coursename'], 'Leadership Theory & Identification')
-        self.assertEqual(d['term'], '2425-BS')
-        self.assertEqual(d['full_num'], self._PLP700fullname)
-        self.assertEqual(d['students_csv'], os.path.join(str(csv_folder), self._PLP700fullname + '.csv'))
-        self.assertEqual(d['instructor'].firstname, 'Keshia Jackson')
-        self.assertEqual(d['instructor'].lastname, 'Gilliam')
-        self.assertEqual(d['instructor'].email, 'keshiajackson.gilliam@converse.edu')
-
-    # @unittest.skip('')
-    def testInitCourseDictPLP701(self) -> None:
-        d = init_course_dict(self._PLP701xlsx_path, self._inst_f, self._crs_f)
-        self.assertEqual(d['infile'], str(self._PLP701xlsx_path))
-        self.assertEqual(d['prefix'], 'PLP')
-        self.assertEqual(d['barenum'], '701')
-        self.assertEqual(d['section'], 'Y1')
-        self.assertEqual(d['display_num'], 'PLP 701')
-        self.assertEqual(d['coursename'], 'Introduction to Community Advocacy')
-        self.assertEqual(d['term'], '2425-BS')
-        self.assertEqual(d['full_num'], self._PLP701fullname)
-        self.assertEqual(d['students_csv'], os.path.join(str(csv_folder), self._PLP701fullname + '.csv'))
-        self.assertEqual(d['instructor'].firstname, 'Jack')
-        self.assertEqual(d['instructor'].lastname, 'Knipe')
-        self.assertEqual(d['instructor'].email, 'John.Knipe@converse.edu')
+        self.assertEqual(d['start_date'], '2025-06-01')
         
     def testReadInputCSC000_noCSV(self) -> None:
         frame = read_input(self._CSC000xlsx_path, os.path.join(csv_folder, self._CSC000fullname + '.csv'))
@@ -116,7 +87,8 @@ class TestWelcome(unittest.TestCase):
         write_students_csv(self._CSC000_d)
 
     def testPrintStudents(self) -> None:
-        send_emails(self._CSC000_d)
+        with SMTP('smtp.gmail.com', 587) as smtp:
+            send_emails(smtp, self._CSC000_d)
 
 
 

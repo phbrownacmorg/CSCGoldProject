@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from email.message import EmailMessage
 from pathlib import Path
 from smtplib import SMTP
@@ -46,6 +47,13 @@ def make_frame(csv_file: Path, idx_label: str) -> pd.DataFrame:
     frame = frame.set_index(idx_label)
     return frame
 
+def make_start_date(spec: str) -> str:
+    try:
+        result = date.fromisoformat(spec)
+    except ValueError:
+        result = date.today()
+    return result.isoformat()
+
 def init_course_dict(infile: Path, i_df: pd.DataFrame, cnm_df: pd.DataFrame) -> dict[str, str | pd.DataFrame]:
     """Initialize and return a dictionary with those properties of the course
         that can be inferred from the INFILE."""
@@ -66,6 +74,7 @@ def init_course_dict(infile: Path, i_df: pd.DataFrame, cnm_df: pd.DataFrame) -> 
     d['full_num'] = d['prefix'] + d['barenum'] + '.' + d['section'] + '-' + d['term']
     d['students_csv'] = str(csv_folder.joinpath(d['full_num'] + '.csv'))
     d['instructor'] = cast(pd.DataFrame, i_df.loc[infile_parts[3]])
+    d['start_date'] = make_start_date(infile_parts[1])
     return d
 
 def read_input(infile: Path, csvfile: str) -> pd.DataFrame:
@@ -78,6 +87,7 @@ def read_input(infile: Path, csvfile: str) -> pd.DataFrame:
     # Get rid of the empty column A, if present
     frame = frame.dropna(axis='columns',how='all')
     frame = frame.set_index('Jenzabar ID')
+    frame['sent'] = None
 
     # Should filter data here
     # 1. Fix capitalization of column names? Might could use columns and then reindex
@@ -102,7 +112,14 @@ def send_emails(smtp: SMTP, course_dict: dict[str, str | pd.DataFrame]) -> None:
     coursenum = course_dict['display_num'] + '.' + course_dict['section']
     lastname = course_dict['instructor'].at['lastname']                                     # type: ignore
     students = course_dict['students'].copy()                                               # type: ignore
+    print(students, '\n')                                                                   # type: ignore
     # Filter out the folks who have already been sent mail
+    if 'sent' in students.columns.values:                                                   # type: ignore
+        print('Filtering out students already sent email')
+        students = students[lambda row: row['sent'] is not None]                            # type: ignore
+        print(students, '\n')
+    else:
+        print('No sent data')
 
     msg = EmailMessage()
     msg['Subject'] = coursenum
@@ -115,7 +132,7 @@ def send_emails(smtp: SMTP, course_dict: dict[str, str | pd.DataFrame]) -> None:
     msg['BCC'] = students.loc[:, ['School EMAIL']].to_dict(orient='list')['School EMAIL']   # type: ignore
     print('BCC:', msg['BCC'])
 
-    msg.set_content(f"""\
+    content = f"""\
 Welcome!  You are registered for {coursenum}, {course_dict['coursename']}.  Your professor will be Dr. {course_dict['instructor'].at['firstname']} {lastname} ({msg['CC']}).
 
 Your course is being taught through Converse's Canvas.  The simplest way to get in to Converse's Canvas is to go to https://converse.instructure.com and log in there with your Converse email and password.
@@ -123,9 +140,12 @@ Your course is being taught through Converse's Canvas.  The simplest way to get 
 If you've taken a course with Converse before, your Converse email address and password will normally be unchanged from what they were. If you have a new Converse account, you should have gotten your Converse email address and password in a separate email from Campus Technology.  If, for any reason, you don't have your address and password, you can get your Converse email and password by contacting Campus Technology at 864-596-9457 during their business hours (M-Th 8-5, F 8-1) or at helpdesk@converse.edu.
 
 Once logged in, you should be taken to your Canvas dashboard.  On that dashboard, you should see a tile with the name of your course.  Click that tile to be taken to the course.
-
+"""
+    if date.fromisoformat(cast(str, course_dict['start_date'])) < date.today():
+        content += """
 If you don't see the tile before the course starts, that is not (yet) a problem.  If you're still not seeing your course by a day after it's supposed to start, please contact your professor.  If that doesn't help, contact me (Dr. Peter Brown, peter.brown@converse.edu).
-
+"""
+    content += f"""
 Please remember that you can always email me (peter.brown@converse.edu) for Canvas questions. Dr. {lastname} is a better source for all other questions.
 
 Peace,
@@ -135,15 +155,20 @@ Peter H. Brown, Ph.D.
 Asst. Professor of Computer Science
 Director of Distance Education
 Converse University
-""")
+"""
+    
+    msg.set_content(content)
     print(msg.get_content())
+    # smtp.send_message(msg)
+    cast(pd.DataFrame, course_dict['students'])['sent'] = datetime.now().isoformat(timespec='seconds')
+    #print(course_dict['students'])
 
-    smtp.send_message(msg)
    
 def write_students_csv(course_dict: dict[str, str | pd.DataFrame]) -> None:
     """Takes a dict COURSE_DICT and writes COURSE_DICT['students'] to the
         appropriate CSV file."""
     course_dict['students'].to_csv(course_dict['students_csv'], quoting=csv.QUOTE_STRINGS) # type: ignore
+    print('Wrote file', course_dict['students_csv'])
 
 def move_to_processed(course_dict: dict[str, str | pd.DataFrame]) -> None:
     """Takes a Path INFILE and moves it to processed_folder."""
@@ -151,6 +176,7 @@ def move_to_processed(course_dict: dict[str, str | pd.DataFrame]) -> None:
     if cast(str, course_dict['display_num']) != 'CSC 000':
         infile = Path(cast(str, course_dict['infile']))                    
         infile.replace(processed_folder.joinpath(infile.name))
+        print('Moved', course_dict['infile'], 'to', infile)
     
 def main(args: list[str]) -> int:
     verify_constants()
@@ -160,8 +186,8 @@ def main(args: list[str]) -> int:
 
 
     with SMTP('smtp.gmail.com', 587) as smtp:
-        smtp.starttls()
-        smtp.login(from_addr, "app password goes here")
+        # smtp.starttls()
+        # smtp.login(from_addr, "app password goes here")
 
         for f in input_files:
             print('Processing', f)
