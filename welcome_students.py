@@ -1,5 +1,6 @@
 from email.message import EmailMessage
 from pathlib import Path
+from smtplib import SMTP
 from typing import cast
 import csv
 import pandas as pd
@@ -93,35 +94,37 @@ def read_input(infile: Path, csvfile: str) -> pd.DataFrame:
 
     return frame
 
-def send_emails(course_dict: dict[str, str | pd.DataFrame]) -> None:
-    """Takes a dict COURSE_DICT and uses it to send welcome emails to the
-        students listed in COURSE_DICT['students'] who have not already 
-        received emails.  COURSE_DICT['students'] is updated with the 
-        information that the new emails have been sent."""
+def send_emails(smtp: SMTP, course_dict: dict[str, str | pd.DataFrame]) -> None:
+    """Takes an SMTP connection SMTP and a dict COURSE_DICT and uses them to
+        send welcome emails to the students listed in COURSE_DICT['students']
+        who have not already received emails.  COURSE_DICT['students'] is
+        updated with the information that the new emails have been sent."""
     coursenum = course_dict['display_num'] + '.' + course_dict['section']
-    lastname = course_dict['instructor'].at['lastname']                                                     # type: ignore
+    lastname = course_dict['instructor'].at['lastname']                                     # type: ignore
+    students = course_dict['students'].copy()                                               # type: ignore
+    # Filter out the folks who have already been sent mail
 
     msg = EmailMessage()
     msg['Subject'] = coursenum
     print('Subject:', msg['Subject'])
     msg['From'] = from_addr
-    msg['To'] = course_dict['students'].loc[:, ['email address']].to_dict(orient='list')['email address']   # type: ignore
+    msg['To'] = students.loc[:, ['email address']].to_dict(orient='list')['email address']  # type: ignore
     print('To:', msg['To'])
-    msg['CC'] = course_dict['instructor'].at['email']                                                       # type: ignore
+    msg['CC'] = course_dict['instructor'].at['email']                                       # type: ignore
     print('CC:', msg['CC'])
-    msg['BCC'] = course_dict['students'].loc[:, ['School EMAIL']].to_dict(orient='list')['School EMAIL']    # type: ignore
+    msg['BCC'] = students.loc[:, ['School EMAIL']].to_dict(orient='list')['School EMAIL']   # type: ignore
     print('BCC:', msg['BCC'])
 
     msg.set_content(f"""\
-Welcome!  You are registered for {coursenum}, {course_dict['coursename']}. Your professor will be Dr. {course_dict['instructor'].at['firstname']} {lastname} ({msg['CC']}).
+Welcome!  You are registered for {coursenum}, {course_dict['coursename']}.  Your professor will be Dr. {course_dict['instructor'].at['firstname']} {lastname} ({msg['CC']}).
 
-Your course is being taught through Converse's Canvas. The simplest way to get in to Converse's Canvas is to go to https://converse.instructure.com and log in there with your Converse email and password.
+Your course is being taught through Converse's Canvas.  The simplest way to get in to Converse's Canvas is to go to https://converse.instructure.com and log in there with your Converse email and password.
 
-If you've taken a course with Converse before, your Converse email address and password will normally be unchanged from what they were. If you have a new Converse account, you should have gotten your Converse email address and password in a separate email from Campus Technology.
+If you've taken a course with Converse before, your Converse email address and password will normally be unchanged from what they were. If you have a new Converse account, you should have gotten your Converse email address and password in a separate email from Campus Technology.  If, for any reason, you don't have your address and password, you can get your Converse email and password by contacting Campus Technology at 864-596-9457 during their business hours (M-Th 8-5, F 8-1) or at helpdesk@converse.edu.
 
-Once logged in, you should be taken to your Canvas dashboard. On that dashboard, you should see a tile with the name of your course.
+Once logged in, you should be taken to your Canvas dashboard.  On that dashboard, you should see a tile with the name of your course.  Click that tile to be taken to the course.
 
-If you don't see the tile before the course starts, that is not (yet) a problem. Our Canvas courses are created unpublished, which means they're hidden from students.
+If you don't see the tile before the course starts, that is not (yet) a problem.  If you're still not seeing your course by a day after it's supposed to start, please contact your professor.  If that doesn't help, contact me (Dr. Peter Brown, peter.brown@converse.edu).
 
 Please remember that you can always email me (peter.brown@converse.edu) for Canvas questions. Dr. {lastname} is a better source for all other questions.
 
@@ -134,6 +137,8 @@ Director of Distance Education
 Converse University
 """)
     print(msg.get_content())
+
+    smtp.send_message(msg)
    
 def write_students_csv(course_dict: dict[str, str | pd.DataFrame]) -> None:
     """Takes a dict COURSE_DICT and writes COURSE_DICT['students'] to the
@@ -152,12 +157,19 @@ def main(args: list[str]) -> int:
     input_files = list_input_files()
     i_df = make_frame(instructors_file, 'filename')
     cnm_df = make_frame(coursenames_file, 'course')
-    for f in input_files:
-        course_dict: dict[str, str | pd.DataFrame] = init_course_dict(f, i_df, cnm_df)
-        course_dict['students'] = read_input(f, cast(str, course_dict['students_csv']))
-        send_emails(course_dict)
-        write_students_csv(course_dict)
-        move_to_processed(course_dict)
+
+
+    with SMTP('smtp.gmail.com', 587) as smtp:
+        smtp.starttls()
+        smtp.login(from_addr, "app password goes here")
+
+        for f in input_files:
+            print('Processing', f)
+            course_dict: dict[str, str | pd.DataFrame] = init_course_dict(f, i_df, cnm_df)
+            course_dict['students'] = read_input(f, cast(str, course_dict['students_csv']))
+            send_emails(smtp, course_dict)
+            write_students_csv(course_dict)
+            move_to_processed(course_dict)
     return 0
 
 if __name__ == '__main__':
@@ -171,5 +183,10 @@ if __name__ == '__main__':
 # 4. Capitalize names
 # 5. Correctly handle the two EDU courses
 # 6. Actually send mail?
+#    - Sending with SMTP evidently requires me to create an app password.  Not sure that's possible on a Converse account.
+#      - Wait--yes, it is.  Have to see whether it works, of course...
+#      - Fails with """smtplib.SMTPAuthenticationError: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials 00721157ae682-70ca8508772sm41659537b3.82 - gsmtp')"""
+#        Hmm--maybe sending programmatically from a Converse account isn't so easy after all.  Talk to CT about this.
+#    - Sending without SMTP means using the Gmail API from Google Cloud, but my Converse account has Google Cloud turned off.
 # 7. Break dependency between processed folder and code folder
-# 7. Clean repo, move code to Dropbox
+# 8. Clean repo, move code to Dropbox
