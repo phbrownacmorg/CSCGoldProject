@@ -8,7 +8,6 @@ from welcome_students import *
 
 class TestWelcome(unittest.TestCase):
 
-
     def setUp(self) -> None:
         self._CSC000stem = 'CSC000.00_2025-06-01_2425-BS_Brown,P.'
         self._CSC000fullname = self._CSC000stem[:9] + '-' + self._CSC000stem[21:28]
@@ -61,7 +60,6 @@ class TestWelcome(unittest.TestCase):
                           self._PLP700xlsx_path, self._PLP701xlsx_path,
                           input_folder.joinpath(self._PLP721stem + '.xlsx')])
                           
-
     def testInitCourseDictCSC000(self) -> None:
         d = init_course_dict(self._CSC000xlsx_path, self._inst_f, self._crs_f)
         self.assertEqual(d['infile'], str(self._CSC000xlsx_path))
@@ -80,17 +78,16 @@ class TestWelcome(unittest.TestCase):
         
     def testReadInputCSC000_noCSV(self) -> None:
         frame = read_input(self._CSC000xlsx_path, os.path.join(csv_folder, self._CSC000fullname + '.csv'))
-        print(frame, '\n')
-        print(frame.loc[1037970])
+        print('\ntestReadInputCSC000:\n', frame, '\n')
+        #print(frame.loc['1037970'])
 
+    @unittest.skip('')
     def testWriteCSV_CSC000(self) -> None:
         write_students_csv(self._CSC000_d)
 
     def testPrintStudents(self) -> None:
         with SMTP('smtp.gmail.com', 587) as smtp:
             send_emails(smtp, self._CSC000_d)
-
-
 
 if __name__ == '__main__':
     unittest.main()

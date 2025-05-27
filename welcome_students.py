@@ -5,6 +5,7 @@ from smtplib import SMTP
 from typing import cast
 import csv
 import pandas as pd
+import re
 
 # Constants
 dropbox_dir = Path.home().joinpath('Dropbox')
@@ -77,30 +78,49 @@ def init_course_dict(infile: Path, i_df: pd.DataFrame, cnm_df: pd.DataFrame) -> 
     d['start_date'] = make_start_date(infile_parts[1])
     return d
 
+def cap_first(s: str) -> str:
+    """Takes a string S and returns S with its first character capitalized and the rest left alone."""
+    if len(s) > 0:
+        s = s[0].title() + s[1:]
+    return s
+
 def read_input(infile: Path, csvfile: str) -> pd.DataFrame:
     """Takes a path INFILE and reads it into a pandas DataFrame.  If a 
         corresponding CSV file exists in csv_folder, use the information from
         there to update the DataFrame.  Return the DataFrame."""
     # Should really look at the file and figure out the value for header
     # Remember that header is 0-indexed, and so one less than the row number
-    frame = pd.read_excel(infile, header=2)
-    # Get rid of the empty column A, if present
-    frame = frame.dropna(axis='columns',how='all')
+    frame = pd.read_excel(infile, header=2, dtype='str')
+    frame = frame.dropna(axis='columns',how='all') # Get rid of empty columns
     frame = frame.set_index('Jenzabar ID')
     frame['sent'] = None
 
-    # Should filter data here
-    # 1. Fix capitalization of column names? Might could use columns and then reindex
-    # 2. Ensure names begin with a capital letter (*not* title-case!)
-    # 3. Dump anything in "email address" that doesn't end in "@converse.edu"
-    # 4. Dump anything in "School email" that *does* end in "@converse.edu"
+    # Fix column names
+    new_cols = {'FIRST NAME': 'First name', 'LAST NAME': 'Last name', 
+               'School EMAIL': 'school email', 'Recovery EMAIL': 'recovery email'}
+    frame = frame.rename(new_cols, axis='columns')
 
-    #csvfile = corresponding_csv(infile)
+    # Filter out NON-"@converse.edu" addresses in "email address"
+    frame.loc[:, 'email address'].replace(to_replace=r"$(?<!@converse.edu)", value=None, inplace=True, regex=True)
+    # Filter out "@converse.edu" addresses in "school email"
+    frame.loc[:, 'school email'].replace(to_replace=r"@converse.edu$", value=None, inplace=True, regex=True)
+
+    # If there are recovery email addresses, use them to fill in blanks in the school emails
+    if 'recovery email' in frame.columns.to_list():
+        frame.loc[:, 'school email'].fillna(frame.loc[:, 'recovery email'], inplace=True)
+
+    # Ensure names are capitalized
+    for field in ['First name', 'Last name']:
+        frame.loc[:, field] = frame.loc[:, field].map(cap_first, na_action='ignore')
+
     if Path(csvfile).is_file():
         # Read that, and update frame with the data
-        frame2 = pd.read_csv(csvfile)
+        frame2 = pd.read_csv(csvfile,dtype="str")
         frame2 = frame2.set_index('Jenzabar ID')
+        frame2 = frame2.rename(new_cols, axis='columns')
         frame = frame.combine_first(frame2)
+
+    # print('Returning:\n', frame, '\n')
 
     return frame
 
@@ -112,27 +132,26 @@ def send_emails(smtp: SMTP, course_dict: dict[str, str | pd.DataFrame]) -> None:
     coursenum = course_dict['display_num'] + '.' + course_dict['section']
     lastname = course_dict['instructor'].at['lastname']                                     # type: ignore
     students = course_dict['students'].copy()                                               # type: ignore
-    print(students, '\n')                                                                   # type: ignore
+    # print('\n', students, '\n')                                                                   # type: ignore
     # Filter out the folks who have already been sent mail
-    if 'sent' in students.columns.values:                                                   # type: ignore
-        print('Filtering out students already sent email')
-        students = students[lambda row: row['sent'] is not None]                            # type: ignore
-        print(students, '\n')
-    else:
-        print('No sent data')
+    assert 'sent' in students.columns.to_list(), 'No SENT column'                           # type: ignore
+    print('Filtering students already sent email')
+    sentvec = students.loc[:, "sent"].isna()
+    # print(sentvec, '\n')
+    students = students.loc[sentvec]                                                        # type: ignore
+    print('Filtering students with no remaining emails')
+    students = students.dropna(how='all', subset=['email address', 'school email'])
+    # print(students, '\n')
 
-    msg = EmailMessage()
-    msg['Subject'] = coursenum
-    print('Subject:', msg['Subject'])
-    msg['From'] = from_addr
-    msg['To'] = students.loc[:, ['email address']].to_dict(orient='list')['email address']  # type: ignore
-    print('To:', msg['To'])
-    msg['CC'] = course_dict['instructor'].at['email']                                       # type: ignore
-    print('CC:', msg['CC'])
-    msg['BCC'] = students.loc[:, ['School EMAIL']].to_dict(orient='list')['School EMAIL']   # type: ignore
-    print('BCC:', msg['BCC'])
+    if not students.empty:
+        msg = EmailMessage()
+        msg['Subject'] = coursenum
+        msg['From'] = from_addr
+        msg['To'] = students.loc[:, ['email address']].dropna().to_dict(orient='list')['email address']  # type: ignore
+        msg['CC'] = course_dict['instructor'].at['email']                                       # type: ignore
+        msg['BCC'] = students.loc[:, ['school email']].dropna().to_dict(orient='list')['school email']   # type: ignore
 
-    content = f"""\
+        content = f"""\
 Welcome!  You are registered for {coursenum}, {course_dict['coursename']}.  Your professor will be Dr. {course_dict['instructor'].at['firstname']} {lastname} ({msg['CC']}).
 
 Your course is being taught through Converse's Canvas.  The simplest way to get in to Converse's Canvas is to go to https://converse.instructure.com and log in there with your Converse email and password.
@@ -141,11 +160,11 @@ If you've taken a course with Converse before, your Converse email address and p
 
 Once logged in, you should be taken to your Canvas dashboard.  On that dashboard, you should see a tile with the name of your course.  Click that tile to be taken to the course.
 """
-    if date.fromisoformat(cast(str, course_dict['start_date'])) < date.today():
-        content += """
+        if date.fromisoformat(cast(str, course_dict['start_date'])) > date.today():
+            content += """
 If you don't see the tile before the course starts, that is not (yet) a problem.  If you're still not seeing your course by a day after it's supposed to start, please contact your professor.  If that doesn't help, contact me (Dr. Peter Brown, peter.brown@converse.edu).
 """
-    content += f"""
+        content += f"""
 Please remember that you can always email me (peter.brown@converse.edu) for Canvas questions. Dr. {lastname} is a better source for all other questions.
 
 Peace,
@@ -157,11 +176,20 @@ Director of Distance Education
 Converse University
 """
     
-    msg.set_content(content)
-    print(msg.get_content())
-    # smtp.send_message(msg)
-    cast(pd.DataFrame, course_dict['students'])['sent'] = datetime.now().isoformat(timespec='seconds')
-    #print(course_dict['students'])
+        msg.set_content(content)
+        if True:   # Set True to echo the message
+            print()
+            print('To:', msg['To'])
+            print('CC:', msg['CC'])
+            print('BCC:', msg['BCC'])
+            print('Subject:', msg['Subject'])
+            #print(msg.get_content())
+            print()
+        # smtp.send_message(msg)
+        # 2025-05-26T15:50:57
+        students['sent'] = datetime.now().isoformat(timespec='seconds')
+        course_dict['students'].fillna(students, inplace=True) 
+        print('cd[students]:\n', course_dict['students'], '\n')
 
    
 def write_students_csv(course_dict: dict[str, str | pd.DataFrame]) -> None:
@@ -184,7 +212,6 @@ def main(args: list[str]) -> int:
     i_df = make_frame(instructors_file, 'filename')
     cnm_df = make_frame(coursenames_file, 'course')
 
-
     with SMTP('smtp.gmail.com', 587) as smtp:
         # smtp.starttls()
         # smtp.login(from_addr, "app password goes here")
@@ -203,11 +230,11 @@ if __name__ == '__main__':
     sys.exit(main(sys.argv))
 
 # TODO:
-# 1. Filter column headings
-# 2. Remove non-Converse email addresses from To:
-# 3. Remove Converse email addresses from BCC:
-# 4. Capitalize names
-# 5. Correctly handle the two EDU courses
+# x1. Filter column headings
+# x2. Remove non-Converse email addresses from To:
+# x3. Remove Converse email addresses from BCC:
+# x4. Capitalize names
+# x5. Correctly handle the two EDU courses
 # 6. Actually send mail?
 #    - Sending with SMTP evidently requires me to create an app password.  Not sure that's possible on a Converse account.
 #      - Wait--yes, it is.  Have to see whether it works, of course...
