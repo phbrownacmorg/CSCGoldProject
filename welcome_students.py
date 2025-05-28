@@ -16,6 +16,7 @@ csv_folder = code_folder.joinpath('students_csv')
 instructors_file = csv_folder.joinpath('instructors.csv')
 coursenames_file = csv_folder.joinpath('coursenames.csv')
 from_addr = 'peter.brown@converse.edu'
+files_to_skip = ['CSC000.00_2025-06-01_2425-BS_Brown,P.']
 
 def verify_constants() -> bool:
     """Verify that all the constant paths exist.  If any doesn't, raise AssertionError."""
@@ -183,7 +184,7 @@ Converse University
             print('CC:', msg['CC'])
             print('BCC:', msg['BCC'])
             print('Subject:', msg['Subject'])
-            #print(msg.get_content())
+            print(msg.get_content())
             print()
         # smtp.send_message(msg)
         # 2025-05-26T15:50:57
@@ -216,8 +217,11 @@ def main(args: list[str]) -> int:
         # smtp.starttls()
         # smtp.login(from_addr, "app password goes here")
 
+
         for f in input_files:
             print('Processing', f)
+            if f.stem in files_to_skip:
+                continue
             course_dict: dict[str, str | pd.DataFrame] = init_course_dict(f, i_df, cnm_df)
             course_dict['students'] = read_input(f, cast(str, course_dict['students_csv']))
             send_emails(smtp, course_dict)
