@@ -188,7 +188,7 @@ Converse University
             print()
         # smtp.send_message(msg)
         # 2025-05-26T15:50:57
-        students['sent'] = datetime.now().isoformat(timespec='seconds')
+        students['sent'] = datetime.now().isoformat(timespec='minutes')
         course_dict['students'].fillna(students, inplace=True) 
         print('cd[students]:\n', course_dict['students'], '\n')
 
