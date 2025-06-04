@@ -1,14 +1,15 @@
-filename,firstname,lastname,email
-"Blanchard,R.",Rick,Blanchard,Richard.Blanchard@converse.edu
-"Bradley,C.",Chelsey,Bradley,Chelsey.Bradley@converse.edu
-"Brown,P.",Peter,Brown,Peter.Brown@converse.edu
-"Dover,S.",Sally,Dover,Sarah.Dover@converse.edu
-"Fitzgerald,E.",Erin,Fitzgerald,Erin.Fitzgerald@converse.edu
-"Gilliam,K.",Keshia Jackson,Gilliam,keshiajackson.gilliam@converse.edu
-"Hammontree,P.",Pompey,Hammontree,Pompey.Hammontree@converse.edu
-"Knipe,J.",Jack,Knipe,John.Knipe@converse.edu
-"McDuffie,T.",Thomas,McDuffie,Thomas.McDuffie@converse.edu
-"Morris,J.",Jill,Morris,Jill.Morris@converse.edu
-"Richardson,T.",Tami,Richardson,Tami.Richardson@converse.edu
-"Stratton,J.",Josie,Stratton,Josie.Stratton@converse.edu
-"Thomas,E.",Evan,Thomas,evan.thomas@converse.edu
+filename,firstname,lastname,email,school email,recovery email
+"Blanchard,R.",Rick,Blanchard,Richard.Blanchard@converse.edu,blanchardr@bcsdschools.net,rsblanchardjr@gmail.com
+"Bradley,C.",Chelsey,Bradley,Chelsey.Bradley@converse.edu,bradleyc@bcsdschools.net,chelseyabradley@gmail.com
+"Brown,P.",Peter,Brown,Peter.Brown@converse.edu,,
+"Dover,S.",Sally,Dover,Sarah.Dover@converse.edu,DoverSG@spart6.org,doversallyg@gmail.com
+"Fitzgerald,E.",Erin,Fitzgerald,Erin.Fitzgerald@converse.edu,efitzgerald@lexington1.net,
+"Gilliam,K.",Keshia Jackson,Gilliam,keshiajackson.gilliam@converse.edu,,
+"Hammontree,P.",Pompey,Hammontree,Pompey.Hammontree@converse.edu,phammontree@greenville.k12.sc.us,
+"Knipe,J.",Jack,Knipe,John.Knipe@converse.edu,,
+"McDuffie,T.",Thomas,McDuffie,Thomas.McDuffie@converse.edu,,
+"Morris,J.",Jill,Morris,Jill.Morris@converse.edu,morrisjs@spart6.org
+"Polatty,A.",Alla,Polatty,Alla.Polatty@converse.edu,polattya@gwd50.org
+"Richardson,T.",Tami,Richardson,Tami.Richardson@converse.edu,,
+"Stratton,J.",Josie,Stratton,Josie.Stratton@converse.edu,,
+"Thomas,E.",Evan,Thomas,evan.thomas@converse.edu,,

@@ -203,9 +203,10 @@ def move_to_processed(course_dict: dict[str, str | pd.DataFrame]) -> None:
     """Takes a Path INFILE and moves it to processed_folder."""
     # Exempt CSC 000 from copying
     if cast(str, course_dict['display_num']) != 'CSC 000':
-        infile = Path(cast(str, course_dict['infile']))                    
-        infile.replace(processed_folder.joinpath(infile.name))
-        print('Moved', course_dict['infile'], 'to', infile)
+        infile = Path(cast(str, course_dict['infile']))
+        outfile = processed_folder.joinpath(infile.name)                    
+        infile.replace(outfile)
+        print('Moved', course_dict['infile'], 'to', outfile)
     
 def main(args: list[str]) -> int:
     verify_constants()
